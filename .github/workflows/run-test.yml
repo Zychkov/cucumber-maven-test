@@ -1,0 +1,167 @@
+name: Run autotests for the FA-Portal
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        default: 'Demo'
+        required: false
+        description: 'Write a tag with which you want to run tests. Default tag - Demo.'
+
+env:
+  SERVICE_NAME: fa-portal-autotest
+  VERSION: 1.0.0
+
+jobs:
+  build:
+    timeout-minutes: 30
+    runs-on: [ self-hosted, runner-nonprod-large, podman ]
+    environment:
+      name: int
+      url: "https://pages.github.com/Zychkov/${{github.repository}}"
+    steps:
+      - name: Show runner info
+        run: |
+          uname -a
+          echo "=============================="
+          uptime
+          echo "=============================="
+          df -h
+          echo "=============================="
+          free -h
+
+      - name: Cleaning up previous run
+        run: |
+          rm -rf "${{ github.workspace }}"
+          mkdir "${{ github.workspace }}"
+
+#      - name: Setup - git-lfs
+#        run: |
+#          downloadUrl=https://github.com/git-lfs/git-lfs/releases/download/v3.3.0/git-lfs-linux-amd64-v3.3.0.tar.gz
+#          gitlfsCachePath=${RUNNER_TOOL_CACHE}/git-lfs/v3.3.0
+#          mkdir -p ${gitlfsCachePath}
+#          cd ${gitlfsCachePath} \
+#            && curl -L ${downloadUrl} -o git-lfs-linux-amd64-v3.3.0.tar.gz \
+#            && tar --strip-components=1 -zxvf git-lfs-linux-amd64-v3.3.0.tar.gz \
+#            && chmod +x git-lfs \
+#            && cd -
+#          echo "${gitlfsCachePath}" >> ${GITHUB_PATH}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: SetupJava
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Show JavaHome
+        run: |
+          echo "JAVA_HOME=" $JAVA_HOME
+
+      - name: Add certificate to Java
+        run: |
+          keytool -importcert -alias autotestssl -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit -file infrastructure/Corp-Issuing-CA01-G2.cer -noprompt
+          echo autotestssl:
+          keytool -keystore $JAVA_HOME/lib/security/cacerts -list -storepass changeit -alias autotestssl
+        continue-on-error: true
+
+      - name: Check Selenium is available
+        run: |
+          curl https://host-to-remote-webdriver.net/wd/hub -k
+        continue-on-error: true
+
+      - name: Setup - Maven toolchains
+        uses: cactuslab/maven-toolchains-xml-action@v1
+        with:
+          toolchains: |
+            [
+              {"jdkVersion": "11", "jdkHome": "${{steps.setupJava.outputs.path}}"}
+            ]
+
+      - name: Setup - Maven Action
+        uses: stCarolas/setup-maven@v4.5
+        with:
+          java-version: "3.8.6"
+
+      - name: Maven - create settings.xml
+        uses: whelk-io/maven-settings-xml-action@v21
+        with:
+          servers: >
+            [
+              {
+                "id": "daimler-central",
+                "username": "${{ secrets.ARTIFACTORY_API_TOKEN_ID }}",
+                "password": "${{ secrets.ARTIFACTORY_API_TOKEN }}"
+              },
+              {
+                "id": "daimler-snapshots",
+                "username": "${{ secrets.ARTIFACTORY_API_TOKEN_ID }}",
+                "password": "${{ secrets.ARTIFACTORY_API_TOKEN }}"
+              },
+              {
+                "id": "mb-snapshots",
+                "username": "${{ secrets.ARTIFACTORY_API_TOKEN_ID }}",
+                "password": "${{ secrets.ARTIFACTORY_API_TOKEN }}"
+              }
+            ]
+          proxies: >
+            [
+              {
+                "id": "build-proxy",
+                "active": "true",
+                "protocol": "http",
+                "host": "build-proxy.ce.cloud.corpintra.net",
+                "port": "3128",
+                "username": "2018-r",
+                "password": "nopwd",
+                "nonProxyHosts": "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,169.254.169.254,*.svc,*.cluster.local,localhost,*.corpintra.net"
+              }
+            ]
+
+      - name: Maven - echo settings.xml
+        run: |
+          echo "~/.m2/settings.xml:"
+          cat ~/.m2/settings.xml
+
+      - name: Maven - execute test
+        env:
+          AUTOTEST_CREDENTIAL_TOKEN: ${{ secrets.AUTOTEST_CREDENTIAL_TOKEN }}
+          AWS_MS_SQL_LOGIN: ${{ secrets.AWS_MS_SQL_LOGIN }}
+          AWS_MS_SQL_PASSWORD: ${{ secrets.AWS_MS_SQL_PASSWORD }}
+        run: mvn -s ~/.m2/settings.xml -X test --file pom.xml -Dgroups=${{ github.event.inputs.tag }}
+        continue-on-error: true
+
+      - name: Move history to allure-results
+        run: |
+          git fetch origin gh-pages --depth 1
+          git checkout origin/gh-pages -- history
+          mv history target/allure-results
+
+      - name: Maven - generate index.html
+        run: |
+          mvn allure:report
+          cp -R allure-plugins/. .allure/allure-*
+          mvn allure:report
+        continue-on-error: true
+
+      - name: Create link to job for Allure
+        run: |
+          python3 infrastructure/executors_update.py
+        continue-on-error: true
+
+      - name: Deploy report to Github Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ github.token }}
+          publish_branch: gh-pages
+          keep_files: true
+          publish_dir: ./target/site/allure-maven-plugin
