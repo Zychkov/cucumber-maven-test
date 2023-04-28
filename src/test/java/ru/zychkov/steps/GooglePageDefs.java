@@ -1,5 +1,6 @@
 package ru.zychkov.steps;
 
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -30,17 +31,27 @@ public class GooglePageDefs {
     }
 
     @Когда("перехожу по url {string}")
-    public void перехожуПоUrl(String url) {
+    public void openUrlRu(String url) {
         open(url );
     }
 
     @И("в ввожу в строку поиска {string}")
-    public void вВвожуВСтрокуПоиска(String value) {
+    public void setValueRu(String value) {
         page.search(value);
     }
 
     @Тогда("вижу ссылку {string}")
-    public void вижуСсылку(String link) {
+    public void checkLinkRu(String link) {
         page.checkLink(link);
+    }
+
+    @И("подтвержжаю использование Cookies")
+    public void acceptCookiesRu() {
+        page.acceptCookies();
+    }
+
+    @And("accept cookies")
+    public void acceptCookies() {
+        page.acceptCookies();
     }
 }

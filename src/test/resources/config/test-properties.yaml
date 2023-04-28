@@ -1,0 +1,17 @@
+portal:
+  username: CccCbabTjsLvZihYxz0zNw==
+  password: AghMxVQ2NRX9zFQCLOhbmw==
+  host: https://www.google.com/
+
+default:
+  timeout: 10
+
+testdata:
+  path: src/test/resources/testdata/
+
+browser: chrome
+
+remote:
+  webdriver:
+    browser: chrome
+    host: https://host-to-remote-webdriver.net/wd/hub

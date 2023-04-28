@@ -9,7 +9,8 @@ import static com.codeborne.selenide.Selenide.sleep;
 
 public class GooglePage {
 
-    private final SelenideElement INPUT_SEARCH = $(By.xpath("//input[@name='q']"));
+    private final SelenideElement INPUT_SEARCH = $(By.xpath("//textarea[@name='q']"));
+    private final SelenideElement BUTTON_ACCEPR_COOKIES = $("#L2AGLb");
 
     public void search(String value) {
         INPUT_SEARCH.val(value).pressEnter();
@@ -20,5 +21,9 @@ public class GooglePage {
 
         $(By.xpath(xPath)).shouldBe(Condition.visible);
         sleep(1000);
+    }
+
+    public void acceptCookies() {
+        BUTTON_ACCEPR_COOKIES.click();
     }
 }

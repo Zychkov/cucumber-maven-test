@@ -9,46 +9,46 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-
-        <cucumber.version>7.4.1</cucumber.version>
-        <selenide.version>6.6.5</selenide.version>
-
-        <junit-jupiter.version>5.8.2</junit-jupiter.version>
-        <junit-platform.version>1.8.2</junit-platform.version>
-
-        <maven-surefire-plugin.version>3.0.0-M7</maven-surefire-plugin.version>
-
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <cucumber.version>7.11.2</cucumber.version>
+        <junit.version>5.9.2</junit.version>
+        <junit-platform.version>1.9.2</junit-platform.version>
+        <allure.version>2.21.0</allure.version>
+        <allure-maven.version>2.11.2</allure-maven.version>
+        <assertj-core.version>3.21.0</assertj-core.version>
+        <lombok.version>1.18.22</lombok.version>
+        <logback.version>1.2.9</logback.version>
+        <maven-surefire.version>3.0.0-M7</maven-surefire.version>
+        <maven-compiler.version>3.8.1</maven-compiler.version>
+        <selenide.version>6.12.0</selenide.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
     </properties>
 
     <dependencies>
-
         <dependency>
-            <groupId>com.codeborne</groupId>
-            <artifactId>selenide</artifactId>
-            <version>${selenide.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <version>${junit-platform.version}</version>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-cucumber7-jvm</artifactId>
+            <version>${allure.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.cucumber</groupId>
+                    <artifactId>gherkin</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit-jupiter.version}</version>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-console</artifactId>
+            <artifactId>junit-platform-suite-engine</artifactId>
             <version>${junit-platform.version}</version>
             <scope>test</scope>
         </dependency>
@@ -57,7 +57,6 @@
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
             <version>${cucumber.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
@@ -65,51 +64,95 @@
             <version>${cucumber.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.codeborne</groupId>
+            <artifactId>selenide</artifactId>
+            <version>${selenide.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.codeborne</groupId>
+            <artifactId>selenide-proxy</artifactId>
+            <version>${selenide.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
+        </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>local</id>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-surefire-plugin</artifactId>-->
-<!--                <version>${maven-surefire-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <properties>-->
-<!--                        <configurationParameters>-->
-<!--                            cucumber.junit-platform.naming-strategy=long-->
-<!--                        </configurationParameters>-->
-<!--                    </properties>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler.version}</version>
+                <configuration>
+                    <release>11</release>
+                </configuration>
+            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <profileId>${project.activeProfiles[0].id}</profileId>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure-maven.version}</version>
                 <executions>
                     <execution>
-                        <!--Work around. Surefire does not use JUnit's Test Engine discovery functionality -->
-                        <id>cli-test</id>
                         <phase>test</phase>
+                        <id>report</id>
                         <goals>
-                            <goal>run</goal>
+                            <goal>report</goal>
                         </goals>
-                        <configuration>
-                            <target unless="maven.test.skip">
-                                <echo message="Running JUnit Platform CLI"/>
-                                <java classname="org.junit.platform.console.ConsoleLauncher"
-                                      fork="true"
-                                      failonerror="true"
-                                      newenvironment="true"
-                                      maxmemory="512m"
-                                      classpathref="maven.test.classpath">
-                                    <arg value="--include-engine"/>
-                                    <arg value="cucumber"/>
-                                    <arg value="--scan-classpath" />
-                                    <arg value="${project.build.testOutputDirectory}" />
-                                </java>
-                            </target>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
